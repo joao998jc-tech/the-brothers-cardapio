@@ -21,14 +21,7 @@
     --line: rgba(241,236,221,0.14); --ink-soft: rgba(241,236,221,0.64);
     --shadow: 0 10px 26px -16px rgba(0,0,0,0.6);
   }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --navy:#3A2C8C; --navy-2:#4B3AAE; --paper:#150F2B; --cream:#1F1A3A;
-      --char:#F1ECDD; --card:#221C42;
-      --line: rgba(241,236,221,0.14); --ink-soft: rgba(241,236,221,0.64);
-      --shadow: 0 10px 26px -16px rgba(0,0,0,0.6);
-    }
-  }
+  /* Cardápio sempre no tema claro (fundo branco), independente do modo escuro do sistema. */
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;font-size:18px;background:var(--paper);}
   body{
