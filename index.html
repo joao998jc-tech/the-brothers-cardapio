@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Brothers Lanchonete — Cardápio</title>
 <style>
   :root{
@@ -94,6 +96,7 @@
     color:var(--ink-soft);white-space:nowrap;cursor:pointer;min-height:46px;
   }
   .cat-nav button.active{background:var(--orange);border-color:var(--orange);color:#1B1824;}
+  .cat-icon{font-size:1.25em;line-height:1;}
 
   .wrap{max-width:820px;margin:0 auto;padding:16px 20px 40px;}
   .empty-state{display:none;text-align:center;padding:60px 20px;color:var(--ink-soft);font-size:1.02rem;}
@@ -307,7 +310,7 @@
 <div class="toolbar">
   <div class="toolbar-inner">
     <div class="search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="search" type="text" placeholder="Buscar no cardápio (ex: bacon, açaí, hot dog)"/>
     </div>
     <nav class="cat-nav" id="catNav"></nav>
@@ -703,7 +706,7 @@ function itemRow(it, catId){
 DATA.forEach(cat=>{
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.textContent = cat.icon + " " + cat.name;
+  btn.innerHTML = `<span class="cat-icon">${cat.icon}</span> ${cat.name}`;
   btn.dataset.target = cat.id;
   btn.onclick = ()=> setActiveCategory(cat.id);
   nav.appendChild(btn);
