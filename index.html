@@ -1,6 +1,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Brothers Lanchonete — Cardápio</title>
+<link rel="icon" type="image/jpeg" href="logoThebrothers.jpg">
+<link rel="apple-touch-icon" href="logoThebrothers.jpg">
 <style>
   :root{
     --navy:#211751; --navy-2:#2E2170; --navy-deep:#150F3B;
@@ -230,6 +232,11 @@
   .pix-box{background:var(--paper);border:1px dashed var(--line);border-radius:10px;padding:14px;text-align:center;margin-top:10px;}
   .pix-box code{display:block;font-size:1.05rem;margin:8px 0;word-break:break-all;}
   .note{font-size:0.84rem;color:var(--ink-soft);margin-top:10px;line-height:1.5;}
+  .ing-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .ing-chip{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:9px 14px;font-size:0.9rem;font-weight:600;cursor:pointer;color:var(--char);}
+  .ing-chip.removed{background:rgba(217,88,76,0.12);border-color:var(--red);color:var(--red);text-decoration:line-through;}
+  .cart-line-custom{font-size:0.82rem;color:var(--ink-soft);margin-top:2px;}
+  .cart-line-custom.removed{color:var(--red);}
 
   /* ADMIN */
   .admin-price-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
@@ -369,10 +376,10 @@
         <div class="chip selected" id="chipRetirada" onclick="setTipoEntrega('retirada')">🏃 Retirar no local</div>
         <div class="chip" id="chipEntrega" onclick="setTipoEntrega('entrega')">🛵 Entrega</div>
       </div>
+      <div id="taxaEntregaInfo" class="note" style="display:none;">🛵 Taxa de entrega: <b id="taxaEntregaValor">R$0,00</b></div>
       <div id="wrapEndereco" style="display:none;">
         <label class="field-label">Endereço completo</label>
         <textarea class="field-textarea" id="chkEndereco" placeholder="Rua, número, bairro, complemento" oninput="updateCheckoutBtn()"></textarea>
-        <p class="note">Taxa de entrega combinada direto no WhatsApp.</p>
       </div>
 
       <label class="field-label">Forma de pagamento</label>
@@ -389,7 +396,25 @@
       <label class="field-label">Observações (opcional)</label>
       <textarea class="field-textarea" id="chkObs" placeholder="Ex: sem cebola, ponto da carne, etc."></textarea>
 
+      <div class="cart-total-row" style="margin-top:16px;"><span>Total</span><span id="checkoutTotalValue">R$0,00</span></div>
       <button type="button" class="btn-primary" id="btnEnviarPedido" disabled onclick="finalizarPedido()">Enviar pedido pelo WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: PERSONALIZAR ITEM ═══ -->
+<div class="modal-overlay" id="modal-customize" onclick="if(event.target===this) closeModal('customize')">
+  <div class="modal">
+    <div class="modal-header"><h3 id="custTitle">🍔 Personalizar</h3><button class="modal-close" onclick="closeModal('customize')">✕</button></div>
+    <div class="modal-body">
+      <div id="custIngWrap">
+        <label class="field-label">Quer tirar algum ingrediente?</label>
+        <div class="ing-row" id="custIngList"></div>
+        <p class="note">Toque em um ingrediente para removê-lo.</p>
+      </div>
+      <label class="field-label">Alguma observação?</label>
+      <textarea class="field-textarea" id="custObs" placeholder="Ex: sem cebola, ponto da carne, etc."></textarea>
+      <button type="button" class="btn-primary" onclick="confirmCustomize()">Adicionar ao carrinho</button>
     </div>
   </div>
 </div>
@@ -448,6 +473,10 @@
       </div>
       <input class="field-input" id="adminPausaMsg" placeholder="Mensagem de pausa (ex: Voltamos às 18h)" oninput="salvarEstado()" style="margin-top:8px;"/>
 
+      <div class="admin-group-title">Taxa de entrega</div>
+      <input class="field-input" id="adminTaxaEntrega" type="number" step="0.01" min="0" placeholder="Ex: 6,00" oninput="salvarEstado()"/>
+      <p class="note">Valor mostrado ao cliente quando ele escolhe "Entrega" no pedido.</p>
+
       <div class="admin-group-title">Promoção quarta/quinta</div>
       <div class="chip-row">
         <div class="chip" id="promoModoAuto" onclick="setPromoModo('auto')">Automático (qua/qui)</div>
@@ -470,6 +499,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
+if("scrollRestoration" in history){ history.scrollRestoration = "manual"; }
+window.scrollTo(0, 0);
+window.addEventListener("pageshow", ()=> window.scrollTo(0, 0));
+
 const WHATS = "5515998479950";
 const ADMIN_SENHA = "brothers123";
 
@@ -601,20 +634,38 @@ const DATA = [
   ]}
 ];
 
-// gera ids estáveis para cada item/tamanho
+// gera ids estáveis para cada item/tamanho + índice de lookup p/ personalização
+const CUSTOMIZABLE_CATS = ["tradicionais","x-burgers","gourmets","hot-dogs","lanche-familia","pasteis","pastelsichas","pasteis-doces"];
+const ITEM_INDEX = {};
 DATA.forEach(cat=>{
   cat.items.forEach((it,i)=>{
     it.id = cat.id + "-" + i;
-    if(it.sizes) it.sizes.forEach((s,j)=> s.id = it.id + "-" + j);
+    ITEM_INDEX[it.id] = {it, cat, size:null};
+    if(it.sizes) it.sizes.forEach((s,j)=>{
+      s.id = it.id + "-" + j;
+      ITEM_INDEX[s.id] = {it, cat, size:s};
+    });
   });
 });
+
+function parseIngredientes(desc){
+  if(!desc) return [];
+  const idx = desc.lastIndexOf(" e ");
+  const normalized = idx === -1 ? desc : desc.slice(0, idx) + ", " + desc.slice(idx + 3);
+  return normalized.split(",").map(s=> s.trim()).filter(Boolean);
+}
+// bases de pão — sem elas não dá pra montar o lanche, então não entram na lista de remoção
+const BASES_FIXAS = new Set(["baguete","pão de hambúrguer","pão de gergelim","pão"]);
+function ingredientesRemoviveis(desc){
+  return parseIngredientes(desc).filter(ing=> !BASES_FIXAS.has(ing.toLowerCase()));
+}
 
 function money(n){ return "R$" + n.toFixed(2).replace(".", ","); }
 
 // ─────────────────────────────────────────────────────────────
 // PREÇOS CUSTOMIZADOS (admin) + ESTADO — persistidos em localStorage
 let _precosCustom = {};
-let _estado = { pausaAtiva:false, pausaMsg:"", promoModo:"auto", promoTitulo:"Promoção da Casa", promoDesc:"Só nesses dois dias — pergunta pra gente qual é a de hoje." };
+let _estado = { pausaAtiva:false, pausaMsg:"", promoModo:"auto", promoTitulo:"Promoção da Casa", promoDesc:"Só nesses dois dias — pergunta pra gente qual é a de hoje.", taxaEntrega:6 };
 let _modoAdmin = false;
 let cart = [];
 
@@ -622,10 +673,13 @@ function salvarEstado(){
   _estado.pausaMsg = document.getElementById("adminPausaMsg").value;
   _estado.promoTitulo = document.getElementById("adminPromoTitulo").value || "Promoção da Casa";
   _estado.promoDesc = document.getElementById("adminPromoDesc").value || "";
+  const taxa = parseFloat(document.getElementById("adminTaxaEntrega").value);
+  _estado.taxaEntrega = isNaN(taxa) || taxa < 0 ? 0 : taxa;
   localStorage.setItem("brothers_estado", JSON.stringify(_estado));
   localStorage.setItem("brothers_precos", JSON.stringify(_precosCustom));
   renderStatus();
   renderPromo();
+  updateTaxaEntregaInfo();
 }
 function carregarEstado(){
   try{ _estado = Object.assign(_estado, JSON.parse(localStorage.getItem("brothers_estado") || "{}")); }catch(e){}
@@ -681,17 +735,20 @@ let activeCat = DATA[0].id;
 
 function itemRow(it, catId){
   const tagHtml = it.tag ? `<span class="pill ${it.tag}">${it.tagLabel || (it.tag==="new"?"Novidade":"Destaque")}</span>` : "";
+  const customizable = CUSTOMIZABLE_CATS.includes(catId);
   let sideHtml;
   if(it.sizes){
     sideHtml = `<div class="size-rows">${it.sizes.map(s=>{
       const p = precoAtual(s.id, s.price);
+      const action = customizable ? `openCustomize('${s.id}')` : `addToCart('${s.id}','${it.name.replace(/'/g,"\\'")}','${s.label}',${p})`;
       return `<div class="size-row"><span class="lbl">${s.label}</span><span class="price">${money(p)}</span>
-        <button class="add-btn" onclick="addToCart('${s.id}','${it.name.replace(/'/g,"\\'")}','${s.label}',${p})">+ Add</button></div>`;
+        <button class="add-btn" onclick="${action}">+ Add</button></div>`;
     }).join("")}</div>`;
   } else {
     const p = precoAtual(it.id, it.price);
+    const action = customizable ? `openCustomize('${it.id}')` : `addToCart('${it.id}','${it.name.replace(/'/g,"\\'")}','',${p})`;
     sideHtml = `<div class="price">${money(p)}</div>
-      <button class="add-btn" onclick="addToCart('${it.id}','${it.name.replace(/'/g,"\\'")}','',${p})">+ Adicionar</button>`;
+      <button class="add-btn" onclick="${action}">+ Adicionar</button>`;
   }
   return `
     <div class="item" data-name="${it.name.toLowerCase()}" data-desc="${(it.desc||"").toLowerCase()}">
@@ -781,23 +838,67 @@ document.getElementById("search").addEventListener("input", (e)=> filterSearch(e
 // ─────────────────────────────────────────────────────────────
 // CARRINHO
 function addToCart(id, name, sizeLabel, price){
-  const existing = cart.find(c=> c.id === id);
+  addToCartCustom(id, name, sizeLabel, price, [], "");
+}
+function addToCartCustom(id, name, sizeLabel, price, removed, obs){
+  removed = removed || [];
+  obs = (obs || "").trim();
+  const uid = [id, sizeLabel, removed.join("|"), obs].join("::");
+  const existing = cart.find(c=> c.uid === uid);
   if(existing){ existing.qty++; }
-  else{ cart.push({id, name, sizeLabel, price, qty:1}); }
+  else{ cart.push({uid, id, name, sizeLabel, price, qty:1, removed, obs}); }
   updateCartUI();
   pulseCartFab();
   showToast(`${name}${sizeLabel?" ("+sizeLabel+")":""} adicionado! 🛒`);
 }
-function changeQty(id, delta){
-  const line = cart.find(c=> c.id === id);
+function changeQty(uid, delta){
+  const line = cart.find(c=> c.uid === uid);
   if(!line) return;
   line.qty += delta;
-  if(line.qty <= 0) cart = cart.filter(c=> c.id !== id);
+  if(line.qty <= 0) cart = cart.filter(c=> c.uid !== uid);
   updateCartUI();
 }
-function removeLine(id){
-  cart = cart.filter(c=> c.id !== id);
+function removeLine(uid){
+  cart = cart.filter(c=> c.uid !== uid);
   updateCartUI();
+}
+
+// ─────────────────────────────────────────────────────────────
+// PERSONALIZAÇÃO (remover ingredientes + observação) — só lanches e pastéis
+let _custCtx = null;
+let _custRemovidos = [];
+function openCustomize(id){
+  const entry = ITEM_INDEX[id];
+  if(!entry) return;
+  const {it, size} = entry;
+  const price = precoAtual(id, size ? size.price : it.price);
+  _custCtx = {id, name: it.name, sizeLabel: size ? size.label : "", price};
+  _custRemovidos = [];
+  document.getElementById("custTitle").textContent = `🍔 ${it.name}${size ? " — " + size.label : ""}`;
+  const ingredientes = ingredientesRemoviveis(it.desc);
+  const wrap = document.getElementById("custIngWrap");
+  const list = document.getElementById("custIngList");
+  if(ingredientes.length){
+    wrap.style.display = "block";
+    list.innerHTML = ingredientes.map(ing=> `<span class="ing-chip" data-ing="${ing.replace(/"/g,"&quot;")}" onclick="toggleIngrediente(this)">${ing}</span>`).join("");
+  } else {
+    wrap.style.display = "none";
+    list.innerHTML = "";
+  }
+  document.getElementById("custObs").value = "";
+  openModal("customize");
+}
+function toggleIngrediente(el){
+  const ing = el.dataset.ing;
+  el.classList.toggle("removed");
+  if(el.classList.contains("removed")) _custRemovidos.push(ing);
+  else _custRemovidos = _custRemovidos.filter(i=> i !== ing);
+}
+function confirmCustomize(){
+  if(!_custCtx) return;
+  const obs = document.getElementById("custObs").value.trim();
+  addToCartCustom(_custCtx.id, _custCtx.name, _custCtx.sizeLabel, _custCtx.price, [..._custRemovidos], obs);
+  closeModal("customize");
 }
 function cartTotal(){ return cart.reduce((s,c)=> s + c.price * c.qty, 0); }
 function cartCount(){ return cart.reduce((s,c)=> s + c.qty, 0); }
@@ -824,14 +925,16 @@ function updateCartUI(){
         <div>
           <div class="cart-line-name">${c.name}${c.sizeLabel?` — ${c.sizeLabel}`:""}</div>
           <div class="cart-line-detail">${money(c.price)} cada</div>
-          <button class="cart-line-remove" onclick="removeLine('${c.id}')">🗑 remover</button>
+          ${c.removed && c.removed.length ? `<div class="cart-line-custom removed">Sem: ${c.removed.join(", ")}</div>` : ""}
+          ${c.obs ? `<div class="cart-line-custom">Obs: ${c.obs}</div>` : ""}
+          <button class="cart-line-remove" onclick="removeLine('${c.uid}')">🗑 remover</button>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <div class="cart-line-price">${money(c.price * c.qty)}</div>
           <div class="cart-line-controls">
-            <button class="qty-btn" onclick="changeQty('${c.id}',-1)">−</button>
+            <button class="qty-btn" onclick="changeQty('${c.uid}',-1)">−</button>
             <span>${c.qty}</span>
-            <button class="qty-btn" onclick="changeQty('${c.id}',1)">+</button>
+            <button class="qty-btn" onclick="changeQty('${c.uid}',1)">+</button>
           </div>
         </div>
       </div>`).join("");
@@ -851,11 +954,19 @@ function pulseCartFab(){
 let _tipoEntrega = "retirada";
 let _pagamento = null;
 
+function taxaEntregaAtual(){ return _estado.taxaEntrega || 0; }
+function checkoutTotal(){ return cartTotal() + (_tipoEntrega === "entrega" ? taxaEntregaAtual() : 0); }
+function updateTaxaEntregaInfo(){
+  document.getElementById("taxaEntregaValor").textContent = money(taxaEntregaAtual());
+  document.getElementById("taxaEntregaInfo").style.display = _tipoEntrega === "entrega" ? "block" : "none";
+  document.getElementById("checkoutTotalValue").textContent = money(checkoutTotal());
+}
 function setTipoEntrega(tipo){
   _tipoEntrega = tipo;
   document.getElementById("chipRetirada").classList.toggle("selected", tipo==="retirada");
   document.getElementById("chipEntrega").classList.toggle("selected", tipo==="entrega");
   document.getElementById("wrapEndereco").style.display = tipo==="entrega" ? "block" : "none";
+  updateTaxaEntregaInfo();
   updateCheckoutBtn();
 }
 function setPagamento(pag, el){
@@ -869,6 +980,7 @@ function updateCheckoutBtn(){
   const nome = document.getElementById("chkNome").value.trim();
   const endOk = _tipoEntrega === "retirada" || document.getElementById("chkEndereco").value.trim().length > 0;
   document.getElementById("btnEnviarPedido").disabled = !(nome.length > 0 && endOk && _pagamento && cart.length > 0);
+  updateTaxaEntregaInfo();
 }
 
 function finalizarPedido(){
@@ -876,13 +988,17 @@ function finalizarPedido(){
   const endereco = document.getElementById("chkEndereco").value.trim();
   const troco = document.getElementById("chkTroco").value.trim();
   const obs = document.getElementById("chkObs").value.trim();
+  const taxa = _tipoEntrega === "entrega" ? taxaEntregaAtual() : 0;
 
   let msg = `🍔 *PEDIDO — THE BROTHERS*\n\n`;
   msg += `👤 *${nome}*\n\n`;
   cart.forEach(c=>{
     msg += `${c.qty}x ${c.name}${c.sizeLabel?` (${c.sizeLabel})`:""} — ${money(c.price*c.qty)}\n`;
+    if(c.removed && c.removed.length) msg += `   _sem: ${c.removed.join(", ")}_\n`;
+    if(c.obs) msg += `   _obs: ${c.obs}_\n`;
   });
-  msg += `\n💰 *Total: ${money(cartTotal())}*\n\n`;
+  if(taxa > 0) msg += `\n🛵 *Taxa de entrega: ${money(taxa)}*\n`;
+  msg += `\n💰 *Total: ${money(cartTotal() + taxa)}*\n\n`;
   msg += _tipoEntrega === "entrega" ? `🛵 *ENTREGA*\n${endereco}\n\n` : `🏃 *RETIRADA NO LOCAL*\n\n`;
   msg += `💳 *Pagamento:* ${_pagamento}${_pagamento==="Dinheiro" && troco ? ` (troco para ${troco})` : ""}\n`;
   if(obs) msg += `\n📝 *Obs:* ${obs}\n`;
@@ -951,6 +1067,7 @@ function sairAdmin(){
 function abrirPainelAdmin(){
   document.getElementById("adminPausa").checked = _estado.pausaAtiva;
   document.getElementById("adminPausaMsg").value = _estado.pausaMsg;
+  document.getElementById("adminTaxaEntrega").value = _estado.taxaEntrega;
   document.getElementById("adminPromoTitulo").value = _estado.promoTitulo;
   document.getElementById("adminPromoDesc").value = _estado.promoDesc;
   setPromoModo(_estado.promoModo, true);
