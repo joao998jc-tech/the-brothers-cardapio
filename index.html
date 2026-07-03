@@ -235,6 +235,7 @@
   .ing-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
   .ing-chip{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:9px 14px;font-size:0.9rem;font-weight:600;cursor:pointer;color:var(--char);}
   .ing-chip.removed{background:rgba(217,88,76,0.12);border-color:var(--red);color:var(--red);text-decoration:line-through;}
+  .ing-chip.selected{background:rgba(76,154,107,0.14);border-color:var(--green);color:var(--green);}
   .cart-line-custom{font-size:0.82rem;color:var(--ink-soft);margin-top:2px;}
   .cart-line-custom.removed{color:var(--red);}
 
@@ -415,6 +416,20 @@
       <label class="field-label">Alguma observação?</label>
       <textarea class="field-textarea" id="custObs" placeholder="Ex: sem cebola, ponto da carne, etc."></textarea>
       <button type="button" class="btn-primary" onclick="confirmCustomize()">Adicionar ao carrinho</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EXTRA BATATA (cheddar e bacon) ═══ -->
+<div class="modal-overlay" id="modal-batata-extra" onclick="if(event.target===this) closeModal('batata-extra')">
+  <div class="modal">
+    <div class="modal-header"><h3 id="batataExtraTitle">🍟 Batata</h3><button class="modal-close" onclick="closeModal('batata-extra')">✕</button></div>
+    <div class="modal-body">
+      <label class="field-label" id="batataExtraLabel">Quer adicionar cheddar e bacon?</label>
+      <div class="ing-row">
+        <span class="ing-chip" id="batataExtraChip" onclick="toggleBatataExtra()">➕ Cheddar e bacon</span>
+      </div>
+      <button type="button" class="btn-primary" onclick="confirmBatataExtra()">Adicionar ao carrinho</button>
     </div>
   </div>
 </div>
@@ -740,7 +755,7 @@ function itemRow(it, catId){
   if(it.sizes){
     sideHtml = `<div class="size-rows">${it.sizes.map(s=>{
       const p = precoAtual(s.id, s.price);
-      const action = customizable ? `openCustomize('${s.id}')` : `addToCart('${s.id}','${it.name.replace(/'/g,"\\'")}','${s.label}',${p})`;
+      const action = catId === "batatas" ? `openBatataExtra('${s.id}')` : customizable ? `openCustomize('${s.id}')` : `addToCart('${s.id}','${it.name.replace(/'/g,"\\'")}','${s.label}',${p})`;
       return `<div class="size-row"><span class="lbl">${s.label}</span><span class="price">${money(p)}</span>
         <button class="add-btn" onclick="${action}">+ Add</button></div>`;
     }).join("")}</div>`;
@@ -899,6 +914,43 @@ function confirmCustomize(){
   const obs = document.getElementById("custObs").value.trim();
   addToCartCustom(_custCtx.id, _custCtx.name, _custCtx.sizeLabel, _custCtx.price, [..._custRemovidos], obs);
   closeModal("customize");
+}
+// ─────────────────────────────────────────────────────────────
+// EXTRA DE BATATA (cheddar e bacon) — preço varia por tamanho: 200g = R$8, 400g = R$16
+let _batataCtx = null;
+let _batataExtraSelecionado = false;
+function precoCheddarBaconBatata(sizeLabel){
+  return (sizeLabel || "").includes("400") ? 16 : 8;
+}
+function openBatataExtra(id){
+  const entry = ITEM_INDEX[id];
+  if(!entry) return;
+  const {it, size} = entry;
+  const price = precoAtual(id, size ? size.price : it.price);
+  const sizeLabel = size ? size.label : "";
+  _batataCtx = {id, name: it.name, sizeLabel, price};
+  _batataExtraSelecionado = false;
+  document.getElementById("batataExtraTitle").textContent = `🍟 ${it.name}${sizeLabel ? " — " + sizeLabel : ""}`;
+  const extraPreco = precoCheddarBaconBatata(sizeLabel);
+  document.getElementById("batataExtraLabel").textContent = "Quer adicionar cheddar e bacon?";
+  const chip = document.getElementById("batataExtraChip");
+  chip.textContent = `➕ Cheddar e bacon (+${money(extraPreco)})`;
+  chip.classList.remove("selected");
+  openModal("batata-extra");
+}
+function toggleBatataExtra(){
+  _batataExtraSelecionado = !_batataExtraSelecionado;
+  document.getElementById("batataExtraChip").classList.toggle("selected", _batataExtraSelecionado);
+}
+function confirmBatataExtra(){
+  if(!_batataCtx) return;
+  const obs = _batataExtraSelecionado ? "Com cheddar e bacon" : "";
+  addToCartCustom(_batataCtx.id, _batataCtx.name, _batataCtx.sizeLabel, _batataCtx.price, [], obs);
+  if(_batataExtraSelecionado){
+    const extraPreco = precoCheddarBaconBatata(_batataCtx.sizeLabel);
+    addToCartCustom(`${_batataCtx.id}-cheddar-bacon`, "Cheddar e bacon", _batataCtx.sizeLabel, extraPreco, [], "Adicional para batata");
+  }
+  closeModal("batata-extra");
 }
 function cartTotal(){ return cart.reduce((s,c)=> s + c.price * c.qty, 0); }
 function cartCount(){ return cart.reduce((s,c)=> s + c.qty, 0); }
