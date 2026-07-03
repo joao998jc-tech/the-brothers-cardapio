@@ -1,14 +1,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FBF8F1">
+<meta name="theme-color" content="#FFFFFF">
 <title>The Brothers Lanchonete — Cardápio</title>
 <link rel="icon" type="image/jpeg" href="logoThebrothers.jpg">
 <link rel="apple-touch-icon" href="logoThebrothers.jpg">
 <style>
   :root{
     --navy:#211751; --navy-2:#2E2170; --navy-deep:#150F3B;
-    --cream:#F4EEDD; --paper:#FBF8F1; --char:#1B1824;
-    --orange:#E4772E; --orange-deep:#C4601E; --mustard:#D6A22B;
+    --cream:#FFFFFF; --paper:#FFFFFF; --char:#1B1824;
+    --orange:#2E44A8; --orange-deep:#17275F; --mustard:#4D6BFF;
     --green:#4C9A6B; --red:#D9584C;
     --acai:#6B2A9E; --acai-2:#8B3FC2; --acai-deep:#3E1763;
     --line: rgba(27,24,36,0.14); --ink-soft: rgba(27,24,36,0.62);
@@ -79,9 +79,9 @@
   .promo-text{display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-width:0;}
   .promo-today{flex:none;background:#1B1824;color:#F4EEDD;font-size:0.78rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:8px 13px;border-radius:8px;animation:promo-pulse 1.8s ease-in-out infinite;}
   .promo-copy{min-width:0;}
-  .promo-eyebrow{font-size:0.76rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(27,24,36,0.7);margin:0 0 2px;}
-  .promo-title{font-size:1.15rem;font-weight:800;color:#1B1824;margin:0;line-height:1.2;}
-  .promo-desc{font-size:0.94rem;color:rgba(27,24,36,0.78);margin:2px 0 0;font-style:italic;}
+  .promo-eyebrow{font-size:0.76rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(244,238,221,0.82);margin:0 0 2px;}
+  .promo-title{font-size:1.15rem;font-weight:800;color:#FFFFFF;margin:0;line-height:1.2;}
+  .promo-desc{font-size:0.94rem;color:rgba(244,238,221,0.88);margin:2px 0 0;font-style:italic;}
   .promo-cta{flex:none;display:inline-flex;align-items:center;gap:6px;background:#1B1824;color:#F4EEDD;font-size:0.92rem;font-weight:700;padding:13px 20px;border-radius:10px;text-decoration:none;white-space:nowrap;border:none;cursor:pointer;min-height:46px;}
   .promo-cta:hover{background:var(--navy-deep);}
   @keyframes promo-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
@@ -101,7 +101,7 @@
     padding:12px 18px;border-radius:22px;background:var(--card);border:1px solid var(--line);
     color:var(--ink-soft);white-space:nowrap;cursor:pointer;min-height:46px;
   }
-  .cat-nav button.active{background:var(--orange);border-color:var(--orange);color:#1B1824;}
+  .cat-nav button.active{background:var(--orange);border-color:var(--orange);color:#FFFFFF;}
   .cat-icon{font-size:1.25em;line-height:1;}
 
   .wrap{max-width:820px;margin:0 auto;padding:16px 20px 40px;}
@@ -126,8 +126,8 @@
   .item-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
   .item-name{font-weight:700;font-size:1.12rem;}
   .pill{font-size:0.7rem;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:20px;text-transform:uppercase;white-space:nowrap;}
-  .pill.new{background:var(--orange);color:#1B1824;}
-  .pill.fav{background:var(--mustard);color:#1B1824;}
+  .pill.new{background:var(--orange);color:#FFFFFF;}
+  .pill.fav{background:var(--mustard);color:#FFFFFF;}
   .item-desc{font-style:italic;font-size:0.92rem;color:rgba(244,238,221,0.7);line-height:1.45;}
   .item-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
   .price{font-weight:800;font-variant-numeric:tabular-nums;color:var(--mustard);font-size:1.14rem;white-space:nowrap;}
@@ -136,7 +136,7 @@
     color:#F4EEDD;font-size:0.92rem;font-weight:700;padding:11px 18px;border-radius:10px;white-space:nowrap;cursor:pointer;min-height:44px;
     transition:background .15s ease;
   }
-  .add-btn:hover{background:var(--orange);border-color:var(--orange);color:#1B1824;}
+  .add-btn:hover{background:var(--orange);border-color:var(--orange);color:#FFFFFF;}
   .size-rows{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
   .size-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .size-row .price{font-size:1rem;}
@@ -160,14 +160,14 @@
   .tab-btn.active{color:#F4EEDD;}
   .tab-btn .ic{font-size:1.5rem;}
   .tab-badge{
-    position:absolute;top:0;right:18%;background:var(--orange);color:#1B1824;font-size:0.68rem;font-weight:800;
+    position:absolute;top:0;right:18%;background:var(--orange);color:#FFFFFF;font-size:0.68rem;font-weight:800;
     min-width:19px;height:19px;border-radius:20px;display:flex;align-items:center;justify-content:center;padding:0 4px;
   }
 
   /* CART FAB */
   .cart-fab{
     position:fixed;left:20px;right:20px;bottom:66px;z-index:60;max-width:780px;margin:0 auto;
-    background:var(--orange);color:#1B1824;border:none;border-radius:14px;padding:14px 18px;
+    background:var(--orange);color:#FFFFFF;border:none;border-radius:14px;padding:14px 18px;
     display:none;align-items:center;justify-content:space-between;font-weight:800;font-size:1.05rem;min-height:56px;
     box-shadow:0 12px 26px -10px rgba(228,119,46,0.6);cursor:pointer;
   }
@@ -224,7 +224,7 @@
     border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:14px 16px;
     font-size:0.96rem;font-weight:700;cursor:pointer;color:var(--char);flex:1;text-align:center;min-width:120px;min-height:48px;display:flex;align-items:center;justify-content:center;
   }
-  .chip.selected{background:var(--orange);border-color:var(--orange);color:#1B1824;}
+  .chip.selected{background:var(--orange);border-color:var(--orange);color:#FFFFFF;}
   .btn-primary{
     width:100%;padding:16px;border:none;border-radius:11px;background:var(--green);color:#fff;
     font-weight:800;font-size:1.05rem;cursor:pointer;margin-top:16px;min-height:52px;
