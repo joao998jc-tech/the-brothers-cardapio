@@ -359,7 +359,19 @@
     </div>
     <div class="cart-footer" id="cartFooter" style="display:none;">
       <div class="cart-total-row"><span>Total</span><span id="cartTotalValue">R$0,00</span></div>
-      <button type="button" class="btn-primary" style="margin-top:0;" onclick="openModal('checkout')">Finalizar pedido</button>
+      <button type="button" class="btn-primary" style="margin-top:0;" onclick="handleFinalizarPedido()">Finalizar pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADICIONAR BEBIDA ═══ -->
+<div class="modal-overlay" id="modal-add-drink" onclick="if(event.target===this) closeModal('add-drink')">
+  <div class="modal">
+    <div class="modal-header"><h3>🥤 Que tal uma bebida?</h3><button class="modal-close" onclick="closeModal('add-drink')">✕</button></div>
+    <div class="modal-body">
+      <p class="note">Vi que seu pedido ainda não tem bebida. Quer adicionar alguma?</p>
+      <button type="button" class="btn-primary" onclick="irParaBebidas()">Sim, quero adicionar</button>
+      <button type="button" class="btn-secondary" onclick="pularBebida()">Não, finalizar sem bebida</button>
     </div>
   </div>
 </div>
@@ -823,6 +835,25 @@ function setActiveCategory(id){
   window.scrollTo({top: document.querySelector(".toolbar").offsetTop - 4, behavior:"smooth"});
 }
 setActiveCategory(activeCat);
+
+// ─────────────────────────────────────────────────────────────
+// SUGESTÃO DE BEBIDA ANTES DE FINALIZAR
+function cartTemBebida(){
+  return cart.some(c=> c.id.startsWith("bebidas-"));
+}
+function handleFinalizarPedido(){
+  if(cartTemBebida()) openModal("checkout");
+  else openModal("add-drink");
+}
+function irParaBebidas(){
+  closeModal("add-drink");
+  closeModal("cart");
+  setActiveCategory("bebidas");
+}
+function pularBebida(){
+  closeModal("add-drink");
+  openModal("checkout");
+}
 
 // ─────────────────────────────────────────────────────────────
 // BUSCA — quando há termo, mostra todas as categorias com resultado
