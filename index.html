@@ -25,7 +25,7 @@
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;font-size:18px;background:var(--paper);}
   body{
-    margin:0; padding-bottom:84px;
+    margin:0; padding-bottom:58px;
     min-height:100%;
     background:var(--paper); color:var(--char);
     font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -143,15 +143,15 @@
   .tabbar{
     position:fixed;left:0;right:0;bottom:0;z-index:50;
     background:var(--navy);border-top:1px solid rgba(244,238,221,0.14);
-    display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    display:flex;padding:3px 4px calc(3px + env(safe-area-inset-bottom));
     box-shadow:0 -8px 20px -12px rgba(0,0,0,0.4);
   }
   .tab-btn{
     flex:1;background:none;border:none;color:rgba(244,238,221,0.6);display:flex;flex-direction:column;
-    align-items:center;gap:4px;font-size:0.72rem;font-weight:700;padding:8px 2px;cursor:pointer;position:relative;min-height:56px;
+    align-items:center;gap:2px;font-size:0.66rem;font-weight:700;padding:4px 2px;cursor:pointer;position:relative;min-height:40px;
   }
   .tab-btn.active{color:#F4EEDD;}
-  .tab-btn .ic{font-size:1.5rem;}
+  .tab-btn .ic{font-size:1.15rem;}
   .tab-badge{
     position:absolute;top:0;right:18%;background:var(--orange);color:#FFFFFF;font-size:0.68rem;font-weight:800;
     min-width:19px;height:19px;border-radius:20px;display:flex;align-items:center;justify-content:center;padding:0 4px;
