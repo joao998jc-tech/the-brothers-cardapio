@@ -50,17 +50,17 @@
   .badge img{width:92%;height:92%;object-fit:contain;}
   .hero h1{font-size:clamp(1.6rem,5vw,2.1rem);margin:0 0 4px;line-height:1;}
   .hero .sub{font-size:0.95rem;color:rgba(244,238,221,0.78);margin:0 0 6px;font-style:italic;}
-  .hero .hours{font-size:0.86rem;color:rgba(244,238,221,0.6);display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+  .hero .hours{font-size:0.86rem;color:rgba(244,238,221,0.6);display:flex;gap:14px;flex-wrap:wrap;justify-content:center;text-align:center;font-variant-numeric:tabular-nums;}
   .hero .hours strong{color:#F4EEDD;font-weight:700;font-style:normal;}
   .status-pill{
-    position:absolute; top:16px; right:20px; display:flex;align-items:center;gap:6px;
+    position:absolute; top:44px; right:6px; display:flex;align-items:center;gap:6px;
     background:rgba(244,238,221,0.1); border:1px solid rgba(244,238,221,0.3); border-radius:20px;
     padding:8px 14px 8px 12px; font-size:0.82rem;font-weight:700; color:#F4EEDD; letter-spacing:0.02em;
   }
   .status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(76,154,107,0.25);flex:none;}
   .status-pill.closed .dot{background:var(--red);box-shadow:0 0 0 3px rgba(217,88,76,0.25);}
   .status-pill.closed{color:rgba(244,238,221,0.75);}
-  @media (max-width:380px){ .status-pill{top:12px;right:12px;padding:6px 10px 6px 9px;font-size:0.74rem;} .hero-text{padding-right:clamp(84px,34vw,120px);} }
+  @media (max-width:380px){ .status-pill{top:38px;right:4px;padding:6px 10px 6px 9px;font-size:0.74rem;} .hero-text{padding-right:clamp(84px,34vw,120px);} }
 
   /* PROMO BANNER */
   .promo-banner{
