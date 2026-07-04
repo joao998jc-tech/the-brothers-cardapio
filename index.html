@@ -123,7 +123,7 @@
   .pill.new{background:var(--orange);color:#FFFFFF;}
   .pill.fav{background:var(--mustard);color:#FFFFFF;}
   .item-desc{font-style:italic;font-size:0.92rem;color:rgba(244,238,221,0.7);line-height:1.45;}
-  .item-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .item-side{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;margin-left:auto;}
   .price{font-weight:800;font-variant-numeric:tabular-nums;color:#F4EEDD;font-size:1.14rem;white-space:nowrap;}
   .add-btn{
     display:flex;align-items:center;gap:6px;background:rgba(244,238,221,0.12);border:1px solid rgba(244,238,221,0.35);
@@ -274,8 +274,8 @@
     .wrap{padding:16px 14px 40px;}
     .toolbar{padding:12px 14px 0;}
     .item{padding:16px 14px;}
-    .item-side{width:100%;align-items:stretch;}
-    .item-side .add-btn{width:100%;justify-content:center;}
+    .item-side{width:auto;align-items:center;margin-left:auto;}
+    .item-side .add-btn{width:auto;justify-content:center;}
     .size-rows{width:100%;}
     .size-row{width:100%;justify-content:space-between;}
     .size-row .add-btn{flex:none;}
