@@ -59,7 +59,8 @@
   .status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(76,154,107,0.25);flex:none;}
   .status-pill.closed .dot{background:var(--red);box-shadow:0 0 0 3px rgba(217,88,76,0.25);}
   .status-pill.closed{color:rgba(244,238,221,0.75);}
-  @media (max-width:480px){ .status-pill{position:static;margin:0 0 12px auto;width:fit-content;} .hero-inner{flex-wrap:wrap;} }
+  @media (max-width:480px){ .status-pill{position:static;margin:0 0 12px auto;width:fit-content;flex-basis:100%;} .hero-inner{flex-wrap:wrap;} }
+  @media (min-width:481px) and (max-width:700px){ .status-pill{position:static;margin:0 0 12px 0;width:fit-content;flex-basis:100%;order:-1;} .hero-inner{flex-wrap:wrap;} }
 
   /* PROMO BANNER */
   .promo-banner{
