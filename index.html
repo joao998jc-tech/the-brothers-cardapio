@@ -335,7 +335,6 @@
         <p class="promo-desc" id="promoDesc">Só nesses dois dias — pergunta pra gente qual é a de hoje.</p>
       </div>
     </div>
-    <button type="button" class="promo-cta" id="promoCta">Quero essa!</button>
   </div>
 </div>
 
@@ -820,11 +819,6 @@ function renderPromo(){
   document.getElementById("promoDesc").textContent = _estado.promoDesc;
   banner.classList.toggle("show", shouldShow);
 }
-document.getElementById("promoCta").addEventListener("click", ()=>{
-  const msg = "Oi! Vi a promoção de hoje no cardápio digital, quero saber mais!";
-  window.open(`https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`, "_blank");
-});
-
 // ─────────────────────────────────────────────────────────────
 // RENDER DO CARDÁPIO
 const nav = document.getElementById("catNav");
