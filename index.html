@@ -520,10 +520,11 @@
 
       <div class="admin-group-title">Status da loja</div>
       <div class="switch-row">
-        <span>Loja pausada manualmente</span>
-        <label class="switch"><input type="checkbox" id="adminPausa" onchange="togglePausa()"><span class="slider"></span></label>
+        <span id="adminAbertaLabel">Loja aberta agora</span>
+        <label class="switch"><input type="checkbox" id="adminAberta" onchange="toggleLoja()"><span class="slider"></span></label>
       </div>
-      <input class="field-input" id="adminPausaMsg" placeholder="Mensagem de pausa (ex: Voltamos às 18h)" oninput="salvarEstado()" style="margin-top:8px;"/>
+      <p class="note" style="margin-top:2px;">Ligue para <b>Abrir</b> e desligue para <b>Fechar</b> a loja. Muda na hora em todos os aparelhos.</p>
+      <input class="field-input" id="adminPausaMsg" placeholder="Mensagem quando fechado (ex: Voltamos às 18h)" oninput="salvarEstado()" style="margin-top:8px;"/>
 
       <div class="admin-group-title">Taxa de entrega</div>
       <input class="field-input" id="adminTaxaEntrega" type="number" step="0.01" min="0" placeholder="Ex: 6,00" oninput="salvarEstado()"/>
@@ -565,10 +566,10 @@
      salvando só no aparelho (localStorage); ao colar a config, o painel passa a
      sincronizar em tempo real para todos os celulares. */
   const FIREBASE_CONFIG = {
-    apiKey:      "COLE_AQUI",
-    authDomain:  "COLE_AQUI",
-    databaseURL: "COLE_AQUI",
-    projectId:   "COLE_AQUI"
+    apiKey:      "AIzaSyA1tF6g-02I8jU_IW7rojZ8f2LBhiemo6g",
+    authDomain:  "the-brothers-jc998.firebaseapp.com",
+    databaseURL: "https://the-brothers-jc998-default-rtdb.firebaseio.com",
+    projectId:   "the-brothers-jc998"
   };
   let dbEstadoRef = null, _fbOk = false;
   try {
@@ -747,7 +748,16 @@ function money(n){ return "R$" + n.toFixed(2).replace(".", ","); }
 // ─────────────────────────────────────────────────────────────
 // PREÇOS CUSTOMIZADOS (admin) + ESTADO — persistidos em localStorage
 let _precosCustom = {};
-let _estado = { pausaAtiva:false, pausaMsg:"", promoModo:"auto", promoTitulo:"Promoção da Casa", promoDesc:"Só nesses dois dias — pergunta pra gente qual é a de hoje.", taxaEntrega:6 };
+let _estado = { lojaAberta:true, pausaMsg:"", promoModo:"auto", promoTitulo:"Promoção da Casa", promoDesc:"Só nesses dois dias — pergunta pra gente qual é a de hoje.", taxaEntrega:6 };
+/* Compatibilidade: versões antigas usavam "pausaAtiva" (true = fechado).
+   Converte para o novo "lojaAberta" (true = aberto) sempre que aparecer. */
+function _normalizaEstado(e){
+  if(e && typeof e.lojaAberta === "undefined" && typeof e.pausaAtiva !== "undefined"){
+    e.lojaAberta = !e.pausaAtiva;
+  }
+  if(e) delete e.pausaAtiva;
+  return e;
+}
 let _modoAdmin = false;
 let cart = [];
 
@@ -768,13 +778,14 @@ function salvarEstado(){
 function carregarEstado(){
   try{ _estado = Object.assign(_estado, JSON.parse(localStorage.getItem("brothers_estado") || "{}")); }catch(e){}
   try{ _precosCustom = JSON.parse(localStorage.getItem("brothers_precos") || "{}"); }catch(e){}
+  _normalizaEstado(_estado);
 }
 /* Aplica um estado recebido do Firebase (ou do cache local). Idempotente:
    pode rodar várias vezes seguidas sem quebrar nada na tela. Não mexe nos
    campos digitáveis do painel admin para não atrapalhar o lojista enquanto edita. */
 function aplicarEstado(payload){
   if(!payload) return;
-  if(payload.estado) _estado = Object.assign(_estado, payload.estado);
+  if(payload.estado) _estado = _normalizaEstado(Object.assign(_estado, payload.estado));
   if(payload.precos) _precosCustom = payload.precos || {};
   renderStatus();
   renderPromo();
@@ -787,22 +798,13 @@ function precoAtual(id, precoBase){
 }
 
 // ─────────────────────────────────────────────────────────────
-// STATUS ABERTO/FECHADO (auto + override manual de pausa)
+// STATUS ABERTO/FECHADO — controlado manualmente pelo lojista (sem horário automático)
 function renderStatus(){
   const pill = document.getElementById("statusPill");
   const text = document.getElementById("statusText");
-  if(_estado.pausaAtiva){
-    pill.classList.add("closed");
-    text.textContent = _estado.pausaMsg ? _estado.pausaMsg : "Fechado no momento";
-    return;
-  }
-  const now = new Date();
-  const day = now.getDay();
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  const isSunday = day === 0;
-  const isOpen = minutes >= (isSunday ? 16*60 : 12*60) && minutes < (isSunday ? 22*60 : 23*60+30);
-  pill.classList.toggle("closed", !isOpen);
-  text.textContent = isOpen ? "Aberto agora" : "Fechado agora";
+  const aberta = _estado.lojaAberta !== false;
+  pill.classList.toggle("closed", !aberta);
+  text.textContent = aberta ? "Aberto agora" : (_estado.pausaMsg ? _estado.pausaMsg : "Fechado no momento");
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1217,7 +1219,10 @@ function sairAdmin(){
   showToast("Saiu do modo lojista.");
 }
 function abrirPainelAdmin(){
-  document.getElementById("adminPausa").checked = _estado.pausaAtiva;
+  const aberta = _estado.lojaAberta !== false;
+  document.getElementById("adminAberta").checked = aberta;
+  const lbl = document.getElementById("adminAbertaLabel");
+  if(lbl) lbl.textContent = aberta ? "Loja aberta agora" : "Loja fechada agora";
   document.getElementById("adminPausaMsg").value = _estado.pausaMsg;
   document.getElementById("adminTaxaEntrega").value = _estado.taxaEntrega;
   document.getElementById("adminPromoTitulo").value = _estado.promoTitulo;
@@ -1252,8 +1257,10 @@ function alterarPreco(id, valor){
     showToast("Preço atualizado.");
   }
 }
-function togglePausa(){
-  _estado.pausaAtiva = document.getElementById("adminPausa").checked;
+function toggleLoja(){
+  _estado.lojaAberta = document.getElementById("adminAberta").checked;
+  const lbl = document.getElementById("adminAbertaLabel");
+  if(lbl) lbl.textContent = _estado.lojaAberta ? "Loja aberta agora" : "Loja fechada agora";
   salvarEstado();
 }
 function setPromoModo(modo, silent){
