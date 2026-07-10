@@ -265,6 +265,11 @@
   .cart-line-custom{font-size:0.82rem;color:var(--ink-soft);margin-top:2px;}
   .cart-line-custom.removed{color:var(--red);}
 
+  /* ESGOTADO */
+  .leaf-esgotado{opacity:0.45;filter:grayscale(60%);}
+  .leaf-esgotado .add-btn{pointer-events:none;}
+  .item-disponibilidade{}
+
   /* ADMIN */
   .admin-price-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
   .admin-price-row:first-child{border-top:none;}
@@ -543,6 +548,7 @@
       <div class="admin-group-title">Editar preços</div>
       <div id="adminPrecosList"></div>
 
+      <button type="button" class="btn-secondary" onclick="adicionarItemAdmin()">➕ Adicionar novo item</button>
       <button type="button" class="btn-secondary" onclick="sairAdmin()">Sair do modo lojista</button>
     </div>
   </div>
@@ -747,6 +753,9 @@ function money(n){ return "R$" + n.toFixed(2).replace(".", ","); }
 // ─────────────────────────────────────────────────────────────
 // PREÇOS CUSTOMIZADOS (admin) + ESTADO — persistidos em localStorage
 let _precosCustom = {};
+let _esgotados = [];
+let _disponibilidades = {};
+let _itensCustomPorCategoria = {};
 let _estado = { lojaAberta:true, pausaMsg:"", promoModo:"auto", promoTitulo:"Promoção da Casa", promoDesc:"Só nesses dois dias — pergunta pra gente qual é a de hoje.", taxaEntrega:6 };
 /* Compatibilidade: versões antigas usavam "pausaAtiva" (true = fechado).
    Converte para o novo "lojaAberta" (true = aberto) sempre que aparecer. */
@@ -768,8 +777,11 @@ function salvarEstado(){
   _estado.taxaEntrega = isNaN(taxa) || taxa < 0 ? 0 : taxa;
   localStorage.setItem("brothers_estado", JSON.stringify(_estado));
   localStorage.setItem("brothers_precos", JSON.stringify(_precosCustom));
+  localStorage.setItem("brothers_esgotados", JSON.stringify(_esgotados));
+  localStorage.setItem("brothers_disponibilidades", JSON.stringify(_disponibilidades));
+  localStorage.setItem("brothers_itensCustom", JSON.stringify(_itensCustomPorCategoria));
   // sincroniza para todos os aparelhos (se o Firebase estiver configurado)
-  if(_fbOk && dbEstadoRef){ try{ dbEstadoRef.set({ estado:_estado, precos:_precosCustom }); }catch(e){ console.warn("Falha ao salvar no Firebase:", e); } }
+  if(_fbOk && dbEstadoRef){ try{ dbEstadoRef.set({ estado:_estado, precos:_precosCustom, esgotados:_esgotados, disponibilidades:_disponibilidades, itensCustom:_itensCustomPorCategoria }); }catch(e){ console.warn("Falha ao salvar no Firebase:", e); } }
   renderStatus();
   renderPromo();
   updateTaxaEntregaInfo();
@@ -777,7 +789,26 @@ function salvarEstado(){
 function carregarEstado(){
   try{ _estado = Object.assign(_estado, JSON.parse(localStorage.getItem("brothers_estado") || "{}")); }catch(e){}
   try{ _precosCustom = JSON.parse(localStorage.getItem("brothers_precos") || "{}"); }catch(e){}
+  try{ _esgotados = JSON.parse(localStorage.getItem("brothers_esgotados") || "[]"); }catch(e){}
+  try{ _disponibilidades = JSON.parse(localStorage.getItem("brothers_disponibilidades") || "{}"); }catch(e){}
+  try{ _itensCustomPorCategoria = JSON.parse(localStorage.getItem("brothers_itensCustom") || "{}"); }catch(e){}
   _normalizaEstado(_estado);
+}
+
+function aplicarItensCustom(){
+  Object.keys(_itensCustomPorCategoria).forEach(catId=>{
+    const cat = DATA.find(c=>c.id===catId);
+    const section = document.getElementById(catId);
+    if(!cat || !section) return;
+    (_itensCustomPorCategoria[catId]||[]).forEach(item=>{
+      if(cat.items.some(it=>it.id===item.id)) return; // já aplicado
+      cat.items.push(item);
+      const panel = section.querySelector(".panel:last-of-type") || section;
+      panel.insertAdjacentHTML("beforeend", itemRow(item, catId));
+    });
+    const countEl = section.querySelector(".count");
+    if(countEl) countEl.textContent = `${cat.items.length} ${cat.items.length===1?"item":"itens"}`;
+  });
 }
 /* Aplica um estado recebido do Firebase (ou do cache local). Idempotente:
    pode rodar várias vezes seguidas sem quebrar nada na tela. Não mexe nos
@@ -786,10 +817,42 @@ function aplicarEstado(payload){
   if(!payload) return;
   if(payload.estado) _estado = _normalizaEstado(Object.assign(_estado, payload.estado));
   if(payload.precos) _precosCustom = payload.precos || {};
+  if(payload.esgotados) _esgotados = payload.esgotados || [];
+  if(payload.disponibilidades) _disponibilidades = payload.disponibilidades || {};
+  if(payload.itensCustom) _itensCustomPorCategoria = payload.itensCustom || {};
   renderStatus();
   renderPromo();
   if(typeof updateTaxaEntregaInfo === "function") updateTaxaEntregaInfo();
   if(typeof rerenderMenuPrices === "function") rerenderMenuPrices();
+  if(typeof aplicarItensCustom === "function") aplicarItensCustom();
+  if(typeof aplicarEsgotadosEDisponibilidades === "function") aplicarEsgotadosEDisponibilidades();
+}
+
+function aplicarEsgotadosEDisponibilidades(){
+  const esgSet = new Set(_esgotados);
+  document.querySelectorAll("[data-leaf-id]").forEach(row=>{
+    const id = row.dataset.leafId;
+    const esgotado = esgSet.has(id);
+    row.classList.toggle("leaf-esgotado", esgotado);
+    const btn = row.querySelector(".add-btn");
+    if(btn) btn.disabled = esgotado;
+  });
+  document.querySelectorAll(".item").forEach(itemEl=>{
+    const btn = itemEl.querySelector(".item-side > .add-btn");
+    if(btn){
+      const ids = (itemEl.dataset.leafIds||"").split(",");
+      const esgotado = ids.length===1 && esgSet.has(ids[0]);
+      btn.disabled = esgotado;
+      if(esgotado) itemEl.classList.add("leaf-esgotado"); else itemEl.classList.remove("leaf-esgotado");
+    }
+    const ids = (itemEl.dataset.leafIds||"").split(",");
+    const textos = ids.map(id=>_disponibilidades[id]).filter(Boolean);
+    const dispEl = itemEl.querySelector(".item-disponibilidade");
+    if(dispEl){
+      if(textos.length){ dispEl.textContent = "🗓️ " + textos[0]; dispEl.style.display = "block"; }
+      else { dispEl.style.display = "none"; }
+    }
+  });
 }
 
 function precoAtual(id, precoBase){
@@ -828,12 +891,13 @@ let activeCat = DATA[0].id;
 function itemRow(it, catId){
   const tagHtml = it.tag ? `<span class="pill ${it.tag}">${it.tagLabel || (it.tag==="new"?"Novidade":"Destaque")}</span>` : "";
   const customizable = CUSTOMIZABLE_CATS.includes(catId);
+  const leafIds = it.sizes ? it.sizes.map(s=>s.id) : [it.id];
   let sideHtml;
   if(it.sizes){
     sideHtml = `<div class="size-rows">${it.sizes.map(s=>{
       const p = precoAtual(s.id, s.price);
       const action = catId === "batatas" ? `openBatataExtra('${s.id}')` : customizable ? `openCustomize('${s.id}')` : `addToCart('${s.id}','${it.name.replace(/'/g,"\\'")}','${s.label}',${p})`;
-      return `<div class="size-row"><span class="lbl">${s.label}</span><span class="price">${money(p)}</span>
+      return `<div class="size-row" data-leaf-id="${s.id}"><span class="lbl">${s.label}</span><span class="price">${money(p)}</span>
         <button class="add-btn" onclick="${action}">+ Add</button></div>`;
     }).join("")}</div>`;
   } else {
@@ -843,10 +907,11 @@ function itemRow(it, catId){
       <button class="add-btn" onclick="${action}">+ Adicionar</button>`;
   }
   return `
-    <div class="item" data-name="${it.name.toLowerCase()}" data-desc="${(it.desc||"").toLowerCase()}">
+    <div class="item" data-name="${it.name.toLowerCase()}" data-desc="${(it.desc||"").toLowerCase()}" data-leaf-ids="${leafIds.join(",")}">
       <div class="item-main">
         <div class="item-name-row"><span class="item-name">${it.name}</span>${tagHtml}</div>
         ${it.desc ? `<div class="item-desc">${it.desc}</div>` : ""}
+        <div class="item-disponibilidade" style="display:none;font-size:0.76rem;font-weight:700;color:#c07a00;margin-top:4px;"></div>
       </div>
       <div class="item-side">${sideHtml}</div>
     </div>`;
@@ -907,6 +972,7 @@ function cartTemBebida(){
   return cart.some(c=> c.id.startsWith("bebidas-"));
 }
 function handleFinalizarPedido(){
+  if(_estado.lojaAberta === false){ showToast("🔴 Estamos fechados no momento. Volte quando abrirmos para enviar seu pedido!"); return; }
   if(cartTemBebida()) openModal("checkout");
   else openModal("add-drink");
 }
@@ -1132,6 +1198,7 @@ function updateCheckoutBtn(){
 }
 
 function finalizarPedido(){
+  if(_estado.lojaAberta === false){ showToast("🔴 Estamos fechados no momento. Não é possível enviar pedidos agora."); return; }
   const nome = document.getElementById("chkNome").value.trim();
   const endereco = document.getElementById("chkEndereco").value.trim();
   const troco = document.getElementById("chkTroco").value.trim();
@@ -1231,11 +1298,17 @@ function abrirPainelAdmin(){
       if(it.sizes){
         it.sizes.forEach(s=>{
           const p = precoAtual(s.id, s.price);
-          html += `<div class="admin-price-row"><span class="nm">${it.name} — ${s.label}</span><input type="number" step="0.01" value="${p}" onchange="alterarPreco('${s.id}', this.value)"/></div>`;
+          html += `<div class="admin-price-row"><span class="nm">${it.name} — ${s.label}</span>
+            <input type="number" step="0.01" value="${p}" onchange="alterarPreco('${s.id}', this.value)"/>
+            <label style="display:flex;align-items:center;gap:4px;font-size:0.72rem;"><input type="checkbox" ${_esgotados.includes(s.id)?"checked":""} onchange="toggleEsgotadoAdmin('${s.id}', this.checked)"/>Esgotado</label></div>
+            <div class="admin-price-row"><input class="field-input" placeholder="Disponibilidade (ex: só fim de semana)" value="${_disponibilidades[s.id]||""}" onchange="alterarDisponibilidade('${s.id}', this.value)" style="flex:1;"/></div>`;
         });
       } else {
         const p = precoAtual(it.id, it.price);
-        html += `<div class="admin-price-row"><span class="nm">${it.name}</span><input type="number" step="0.01" value="${p}" onchange="alterarPreco('${it.id}', this.value)"/></div>`;
+        html += `<div class="admin-price-row"><span class="nm">${it.name}</span>
+          <input type="number" step="0.01" value="${p}" onchange="alterarPreco('${it.id}', this.value)"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.72rem;"><input type="checkbox" ${_esgotados.includes(it.id)?"checked":""} onchange="toggleEsgotadoAdmin('${it.id}', this.checked)"/>Esgotado</label></div>
+          <div class="admin-price-row"><input class="field-input" placeholder="Disponibilidade (ex: só fim de semana)" value="${_disponibilidades[it.id]||""}" onchange="alterarDisponibilidade('${it.id}', this.value)" style="flex:1;"/></div>`;
       }
     });
   });
@@ -1250,6 +1323,45 @@ function alterarPreco(id, valor){
     rerenderMenuPrices();
     showToast("Preço atualizado.");
   }
+}
+function toggleEsgotadoAdmin(id, checked){
+  if(checked){ if(!_esgotados.includes(id)) _esgotados.push(id); }
+  else { _esgotados = _esgotados.filter(x=>x!==id); }
+  salvarEstado();
+  aplicarEsgotadosEDisponibilidades();
+}
+function adicionarItemAdmin(){
+  const opcoes = DATA.map((c,i)=>`${i+1}) ${c.icon} ${c.name}`).join("\n");
+  const escolha = prompt(`Em qual categoria adicionar o item?\n${opcoes}`, "1");
+  if(escolha === null) return;
+  const cat = DATA[parseInt(escolha,10)-1];
+  if(!cat){ showToast("Categoria inválida."); return; }
+  const nome = prompt("Nome do item:");
+  if(!nome || !nome.trim()) return;
+  const precoStr = prompt("Preço (ex.: 12.50):");
+  const preco = parseFloat((precoStr||"").replace(",", "."));
+  if(isNaN(preco) || preco < 0){ showToast("Preço inválido."); return; }
+  const desc = prompt("Descrição (opcional):") || "";
+  const id = "custom-" + Date.now().toString(36);
+  const item = { id, name: nome.trim(), price: preco, desc };
+  cat.items.push(item);
+  if(!_itensCustomPorCategoria[cat.id]) _itensCustomPorCategoria[cat.id] = [];
+  _itensCustomPorCategoria[cat.id].push(item);
+  const section = document.getElementById(cat.id);
+  const panel = section.querySelector(".panel:last-of-type") || section;
+  panel.insertAdjacentHTML("beforeend", itemRow(item, cat.id));
+  const countEl = section.querySelector(".count");
+  if(countEl) countEl.textContent = `${cat.items.length} ${cat.items.length===1?"item":"itens"}`;
+  aplicarEsgotadosEDisponibilidades();
+  salvarEstado();
+  showToast("Item adicionado! ✅");
+}
+function alterarDisponibilidade(id, valor){
+  const v = (valor||"").trim();
+  if(v) _disponibilidades[id] = v; else delete _disponibilidades[id];
+  salvarEstado();
+  aplicarEsgotadosEDisponibilidades();
+  showToast(v ? "Disponibilidade atualizada." : "Disponibilidade removida.");
 }
 function toggleLoja(){
   _estado.lojaAberta = document.getElementById("adminAberta").checked;
@@ -1300,6 +1412,9 @@ function rerenderMenuPrices(){
 carregarEstado();          // cache local imediato (evita "piscar" o preço padrão)
 renderStatus();
 renderPromo();
+rerenderMenuPrices();
+aplicarItensCustom();
+aplicarEsgotadosEDisponibilidades();
 updateCartUI();
 setInterval(renderStatus, 60000);
 
